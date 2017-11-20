@@ -7,12 +7,11 @@
 
 
 #include "geanyplugin.h"	/* plugin API, always comes first */
-//#include "Scintilla.h"	/* for the SCNotification struct */
 
 
 PLUGIN_VERSION_CHECK(GEANY_API_VERSION)
-PLUGIN_SET_INFO(_("OpenMSX Emulator"), _("Opens instance of OpenMSX inside a window."),
-	VERSION, _("Pedro de Medeiros"))
+PLUGIN_SET_INFO(_("OpenMSX Emulator"), _("Opens instance of OpenMSX inside Geany."),
+	VERSION, _("Pedro Vaz de Mello de Medeiros"))
 
 
 GeanyData		*geany_data;
@@ -49,6 +48,8 @@ static enum State plugin_state;
 
 static int acceleration;
 
+static GtkWidget *main_menu_item = NULL;
+
 
 typedef struct OpenMSXWindow
 {
@@ -61,7 +62,7 @@ OpenMSXWindow;
 static EditWindow openmsx_window = {NULL, NULL, NULL, NULL};
 
 
-typedef struct OpenMSXWindow
+typedef struct OpenMSXDialog
 {
 	GtkWidget		*command_entry;
 	GtkWidget		*parameters_entry;
@@ -71,27 +72,24 @@ OpenMSXDialog;
 static OpenMSXDialog openmsx_dialog = {NULL, NULL};
 
 
-static void on_stop_emulator(GtkMenuItem *menuitem, gpointer user_data);
-
-
-static GtkWidget *main_menu_item = NULL;
-
-/* default configuration stuff */
-
 typedef struct OpenMSXUserData
 {
 	gchar *command;
 	gint socket;
-	gchar *openmsx_parameters;
+	gchar *parameters;
 	gchar **saved_states;
 	int num_saved_states;
 }
 OpenMSXUserData;
 
+const gchar *DEFAULT_COMMAND = "/usr/bin/openmsx";
+
+const gchar *DEFAULT_PARAMETERS = "";
+
 static OpenMSXUserData openmsx_userdata = {
-	"/usr/bin/openmsx",
+	DEFAULT_COMMAND,
 	0,
-	"",
+	DEFAULT_PARAMETERS,
 	NULL,
 	0
 };
@@ -99,14 +97,12 @@ static OpenMSXUserData openmsx_userdata = {
 
 static PluginCallback openmsx_callbacks[] =
 {
-	/* Set 'after' (third field) to TRUE to run the callback @a after the default handler.
-	 * If 'after' is FALSE, the callback is run @a before the default handler, so the plugin
-	 * can prevent Geany from processing the notification. Use this with care. */
-	{ "document-activate", (GCallback) &on_openmsx_activate, FALSE, NULL },
-	{ "document-close", (GCallback) &on_opemsx_close, FALSE, NULL },
-	{ "project-before-close", (GCallback) &on_opemsx_close, FALSE, NULL },
+	{ "document-activate", (GCallback) &on_openmsx_activate, TRUE, NULL },
+	{ "document-close", (GCallback) &on_opemsx_close, TRUE, NULL },
+	{ "project-before-close", (GCallback) &on_opemsx_close, TRUE, NULL },
 	{ NULL, NULL, FALSE, NULL }
 };
+
 
 static void start_emulator()
 {
@@ -119,16 +115,19 @@ static void on_start_emulator(GtkMenuItem *menuitem, gpointer user_data)
 	start_emulator();
 }
 
+
 static void on_pause_emulator(GtkMenuItem *menuitem, gpointer user_data)
 {
 	pause_emulator();
 }
+
 
 static void on_stop_emulator(GtkMenuItem *menuitem, gpointer user_data)
 {
 	stop_emulator();
 	unsplit_view();
 }
+
 
 static void set_state(enum State id)
 {
@@ -267,6 +266,7 @@ on_configure_response(GtkDialog *dialog, gint response, gpointer user_data)
 	}
 }
 
+
 /* Called by Geany to show the plugin's configure dialog. This function is always called after
  * openmsx_init() was called.
  * You can omit this function if the plugin doesn't need to be configured.
@@ -308,6 +308,7 @@ static GtkWidget *openmsx_configure(GeanyPlugin *plugin, GtkDialog *dialog, gpoi
 
 	/* Connect a callback for when the user clicks a dialog button */
 	g_signal_connect(dialog, "response", G_CALLBACK(on_configure_response), openmsx_dialog);
+
 	return vbox;
 }
 
@@ -319,8 +320,12 @@ static void openmsx_cleanup(GeanyPlugin *plugin, gpointer data)
 {
 	/* remove the menu item added in openmsx_init() */
 	gtk_widget_destroy(main_menu_item);
+
 	/* release other allocated strings and objects */
-	g_free(welcome_text);
+	if (openmsx_userdata.command != DEFAULT_COMMAND)
+		g_free(openmsx_userdata.command);
+	if (openmsx_userdata.parameters != DEFAULT_PARAMETERS)
+		g_free(openmsx_userdata.parameters);
 }
 
 void geany_load_module(GeanyPlugin *plugin)
@@ -340,4 +345,3 @@ void geany_load_module(GeanyPlugin *plugin)
 
 	GEANY_PLUGIN_REGISTER(plugin, 225);
 }
-
