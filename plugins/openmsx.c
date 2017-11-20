@@ -49,6 +49,8 @@ static enum State plugin_state;
 
 static int acceleration;
 
+static GtkWidget *main_menu_item = NULL;
+
 
 typedef struct OpenMSXWindow
 {
@@ -61,7 +63,7 @@ OpenMSXWindow;
 static EditWindow openmsx_window = {NULL, NULL, NULL, NULL};
 
 
-typedef struct OpenMSXWindow
+typedef struct OpenMSXDialog
 {
 	GtkWidget		*command_entry;
 	GtkWidget		*parameters_entry;
@@ -69,12 +71,6 @@ typedef struct OpenMSXWindow
 OpenMSXDialog;
 
 static OpenMSXDialog openmsx_dialog = {NULL, NULL};
-
-
-static void on_stop_emulator(GtkMenuItem *menuitem, gpointer user_data);
-
-
-static GtkWidget *main_menu_item = NULL;
 
 /* default configuration stuff */
 
@@ -87,6 +83,7 @@ typedef struct OpenMSXUserData
 	int num_saved_states;
 }
 OpenMSXUserData;
+
 
 static OpenMSXUserData openmsx_userdata = {
 	"/usr/bin/openmsx",
@@ -108,6 +105,7 @@ static PluginCallback openmsx_callbacks[] =
 	{ NULL, NULL, FALSE, NULL }
 };
 
+
 static void start_emulator()
 {
 
@@ -119,16 +117,19 @@ static void on_start_emulator(GtkMenuItem *menuitem, gpointer user_data)
 	start_emulator();
 }
 
+
 static void on_pause_emulator(GtkMenuItem *menuitem, gpointer user_data)
 {
 	pause_emulator();
 }
+
 
 static void on_stop_emulator(GtkMenuItem *menuitem, gpointer user_data)
 {
 	stop_emulator();
 	unsplit_view();
 }
+
 
 static void set_state(enum State id)
 {
@@ -267,6 +268,7 @@ on_configure_response(GtkDialog *dialog, gint response, gpointer user_data)
 	}
 }
 
+
 /* Called by Geany to show the plugin's configure dialog. This function is always called after
  * openmsx_init() was called.
  * You can omit this function if the plugin doesn't need to be configured.
@@ -308,6 +310,7 @@ static GtkWidget *openmsx_configure(GeanyPlugin *plugin, GtkDialog *dialog, gpoi
 
 	/* Connect a callback for when the user clicks a dialog button */
 	g_signal_connect(dialog, "response", G_CALLBACK(on_configure_response), openmsx_dialog);
+
 	return vbox;
 }
 
@@ -340,4 +343,3 @@ void geany_load_module(GeanyPlugin *plugin)
 
 	GEANY_PLUGIN_REGISTER(plugin, 225);
 }
-
